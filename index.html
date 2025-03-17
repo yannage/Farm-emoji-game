@@ -91,4 +91,47 @@
             const key = `${row}-${col}`;
             if (grid[row][col] === "🕳️") {
                 grid[row][col] = "🌱";
-            } else if (grid[row][col] === "🌱" && !wateredPlants[key
+            } else if (grid[row][col] === "🌱" && !wateredPlants[key]) {
+                wateredPlants[key] = true;
+                startGrowthTimer(row, col);
+            } else if (grid[row][col] !== "🌱" && grid[row][col] !== "🕳️") {
+                let crop = grid[row][col];
+                inventory[crop].count++;
+                updateInventory();
+                grid[row][col] = "🕳️";
+                delete wateredPlants[key];
+            }
+            renderGrid();
+        }
+
+        function startGrowthTimer(row, col) {
+            const key = `${row}-${col}`;
+            let selectedCrop = selectRandomCrop();
+            setTimeout(() => {
+                grid[row][col] = selectedCrop.emoji;
+                delete wateredPlants[key];
+                renderGrid();
+            }, selectedCrop.time * 1000);
+        }
+
+        function toggleAchievements() {
+            const achievementsDiv = document.getElementById("achievements");
+            achievementsDiv.innerHTML = Object.keys(achievements)
+                .map(ach => `<div class="achievement">${ach} - ${achievements[ach] ? "✅" : "❌"}</div>`)
+                .join("");
+            achievementsDiv.style.display = achievementsDiv.style.display === "none" ? "block" : "none";
+        }
+
+        function loadMoney() {
+            return parseInt(localStorage.getItem("money")) || 0;
+        }
+
+        function saveMoney() {
+            localStorage.setItem("money", money);
+        }
+
+        document.getElementById("money").innerText = `💰 Money: ${money}`;
+        renderGrid();
+    </script>
+</body>
+</html>
