@@ -6,20 +6,31 @@
     <title>Emoji Farm Game</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Arial', sans-serif; text-align: center; background-color: #f0f0f0; }
-        #grid { display: grid; grid-template-columns: repeat(5, 60px); gap: 5px; justify-content: center; margin-top: 20px; }
-        .cell { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 32px; cursor: pointer; border: 1px solid #ccc; background-color: white; }
+        body { font-family: 'Arial', sans-serif; text-align: center; background-color: #f0f0f0; display: flex; justify-content: center; gap: 20px; padding: 20px; }
+        #game-container { display: flex; }
+        #grid { display: grid; grid-template-columns: repeat(5, 60px); gap: 5px; justify-content: center; }
+        .cell { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 32px; cursor: pointer; border: 1px solid #ccc; background-color: white; position: relative; }
+        .water-drop { position: absolute; font-size: 16px; top: 5px; right: 5px; }
+        #inventory { width: 150px; text-align: left; }
     </style>
 </head>
 <body>
     <h1>🌾 Emoji Farm Game 🌱</h1>
-    <p>Click on an empty plot 🕳️ to plant 🌱, water 💧, and grow 🌾!</p>
-    <div id="grid"></div>
+    <p>Click on an empty plot 🕳️ to plant 🌱, water 💧, and harvest crops!</p>
+    <div id="game-container">
+        <div id="inventory">
+            <h2>Inventory</h2>
+            <ul id="inventory-list"></ul>
+        </div>
+        <div id="grid"></div>
+    </div>
     
     <script>
         const size = 5;
         let grid = Array(size).fill().map(() => Array(size).fill("🕳️"));
-        
+        let wateredPlants = new Set();
+        let inventory = [];
+
         function renderGrid() {
             const gridContainer = document.getElementById("grid");
             gridContainer.innerHTML = "";
@@ -29,20 +40,45 @@
                     cellElement.classList.add("cell");
                     cellElement.innerText = cell;
                     cellElement.onclick = () => updateCell(rowIndex, colIndex);
+                    
+                    if (wateredPlants.has(`${rowIndex}-${colIndex}`)) {
+                        let waterDrop = document.createElement("div");
+                        waterDrop.classList.add("water-drop");
+                        waterDrop.innerText = "💧";
+                        cellElement.appendChild(waterDrop);
+                    }
                     gridContainer.appendChild(cellElement);
                 });
             });
         }
         
         function updateCell(row, col) {
-            if (grid[row][col] === "🕳️") grid[row][col] = "🌱";
-            else if (grid[row][col] === "🌱") grid[row][col] = "💧";
-            else if (grid[row][col] === "💧") grid[row][col] = "🌾";
+            const key = `${row}-${col}`;
+            if (grid[row][col] === "🕳️") {
+                grid[row][col] = "🌱";
+            } else if (grid[row][col] === "🌱") {
+                grid[row][col] = "🌱";
+                wateredPlants.add(key);
+            } else if (grid[row][col] === "🌱" && wateredPlants.has(key)) {
+                setTimeout(() => {
+                    grid[row][col] = "🌾";
+                    wateredPlants.delete(key);
+                    renderGrid();
+                }, 2000);
+            } else if (grid[row][col] === "🌾") {
+                inventory.push("🌾");
+                updateInventory();
+                grid[row][col] = "🕳️";
+            }
             renderGrid();
         }
         
+        function updateInventory() {
+            const inventoryList = document.getElementById("inventory-list");
+            inventoryList.innerHTML = inventory.map(item => `<li>${item}</li>`).join("");
+        }
+
         renderGrid();
     </script>
 </body>
 </html>
-
