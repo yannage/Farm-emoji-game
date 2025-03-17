@@ -11,7 +11,8 @@
         #grid { display: grid; grid-template-columns: repeat(5, 60px); gap: 5px; margin-top: 20px; }
         .cell { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 32px; cursor: pointer; border: 1px solid #ccc; background-color: white; position: relative; }
         .water-drop { position: absolute; font-size: 16px; top: 5px; right: 5px; }
-        #inventory { margin-top: 20px; text-align: left; }
+        #inventory { display: grid; grid-template-columns: repeat(4, 60px); gap: 5px; margin-top: 20px; }
+        .inventory-item { width: 60px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #ccc; background: white; font-size: 24px; }
         #money { font-size: 24px; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
@@ -20,10 +21,7 @@
     <p>Click an empty plot 🕳️ to plant 🌱, water 💧, and harvest crops!</p>
     <div id="money">💰 Money: 0</div>
     <div id="game-container">
-        <div id="inventory">
-            <h2>Inventory</h2>
-            <ul id="inventory-list"></ul>
-        </div>
+        <div id="inventory"></div>
         <div id="grid"></div>
     </div>
     
@@ -31,7 +29,6 @@
         const size = 5;
         let grid = Array(size).fill().map(() => Array(size).fill("🕳️"));
         let wateredPlants = {};
-        let inventory = {};
         let money = 0;
 
         const crops = [
@@ -41,6 +38,9 @@
             { emoji: "🥭", value: 60 }, { emoji: "🍏", value: 65 }, { emoji: "🍊", value: 70 }, { emoji: "🥑", value: 75 },
             { emoji: "🍒", value: 80 }, { emoji: "🥥", value: 90 }, { emoji: "🍉", value: 100 }
         ];
+
+        let inventory = {};
+        crops.forEach(crop => inventory[crop.emoji] = { count: 0, value: crop.value });
 
         function selectRandomCrop() {
             let totalWeight = crops.reduce((sum, crop) => sum + (100 / crop.value), 0);
@@ -88,11 +88,7 @@
                 inventory[grid[row][col]].count++;
             } else if (grid[row][col] !== "🌱" && grid[row][col] !== "🕳️") {
                 let crop = grid[row][col];
-                if (!inventory[crop]) {
-                    inventory[crop] = { count: 1, value: crops.find(c => c.emoji === crop).value };
-                } else {
-                    inventory[crop].count++;
-                }
+                inventory[crop].count++;
                 updateInventory();
                 grid[row][col] = "🕳️";
                 delete wateredPlants[key];
@@ -111,12 +107,13 @@
         }
 
         function updateInventory() {
-            const inventoryList = document.getElementById("inventory-list");
-            inventoryList.innerHTML = "";
+            const inventoryContainer = document.getElementById("inventory");
+            inventoryContainer.innerHTML = "";
             Object.keys(inventory).forEach(crop => {
-                let listItem = document.createElement("li");
-                listItem.innerHTML = `${crop} (${inventory[crop].count}x) <button onclick='sellCrop("${crop}")'>Sell</button>`;
-                inventoryList.appendChild(listItem);
+                let cropDiv = document.createElement("div");
+                cropDiv.classList.add("inventory-item");
+                cropDiv.innerHTML = `${crop} <br> ${inventory[crop].count}x <br> <button onclick='sellCrop("${crop}")'>💰</button>`;
+                inventoryContainer.appendChild(cropDiv);
             });
         }
 
@@ -124,11 +121,12 @@
             if (inventory[crop] && inventory[crop].count > 0) {
                 money += inventory[crop].value * inventory[crop].count;
                 document.getElementById("money").innerText = `💰 Money: ${money}`;
-                delete inventory[crop];
+                inventory[crop].count = 0;
                 updateInventory();
             }
         }
 
+        updateInventory();
         renderGrid();
     </script>
 </body>
