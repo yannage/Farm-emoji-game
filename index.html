@@ -11,19 +11,19 @@
         #grid { display: grid; grid-template-columns: repeat(5, 60px); gap: 5px; margin-top: 20px; }
         .cell { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 32px; cursor: pointer; border: 1px solid #ccc; background-color: white; position: relative; }
         .water-drop { position: absolute; font-size: 16px; top: 5px; right: 5px; }
-        #inventory { width: 150px; text-align: left; margin-top: 20px; }
-        #timers { margin-top: 10px; }
+        #inventory { margin-top: 20px; text-align: left; }
+        #money { font-size: 24px; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
     <h1>🌾 Emoji Farm Game 🌱</h1>
-    <p>Click on an empty plot 🕳️ to plant 🌱, water 💧, and harvest crops!</p>
+    <p>Click an empty plot 🕳️ to plant 🌱, water 💧, and harvest crops!</p>
+    <div id="money">💰 Money: 0</div>
     <div id="game-container">
         <div id="inventory">
             <h2>Inventory</h2>
             <ul id="inventory-list"></ul>
         </div>
-        <div id="timers">Growth Timer: <span id="growth-timer">0</span> sec</div>
         <div id="grid"></div>
     </div>
     
@@ -31,8 +31,30 @@
         const size = 5;
         let grid = Array(size).fill().map(() => Array(size).fill("🕳️"));
         let wateredPlants = {};
-        let inventory = [];
-        let growthTimers = {};
+        let inventory = {};
+        let money = 0;
+
+        const crops = [
+            { emoji: "🌾", value: 1 }, { emoji: "🌽", value: 5 }, { emoji: "🥕", value: 10 }, { emoji: "🍅", value: 15 },
+            { emoji: "🍆", value: 20 }, { emoji: "🍎", value: 25 }, { emoji: "🍇", value: 30 }, { emoji: "🥦", value: 35 },
+            { emoji: "🥒", value: 40 }, { emoji: "🌶️", value: 45 }, { emoji: "🍍", value: 50 }, { emoji: "🍑", value: 55 },
+            { emoji: "🥭", value: 60 }, { emoji: "🍏", value: 65 }, { emoji: "🍊", value: 70 }, { emoji: "🥑", value: 75 },
+            { emoji: "🍒", value: 80 }, { emoji: "🥥", value: 90 }, { emoji: "🍉", value: 100 }
+        ];
+
+        function selectRandomCrop() {
+            let totalWeight = crops.reduce((sum, crop) => sum + (100 / crop.value), 0);
+            let rand = Math.random() * totalWeight;
+            let cumulativeWeight = 0;
+
+            for (let crop of crops) {
+                cumulativeWeight += (100 / crop.value);
+                if (rand < cumulativeWeight) {
+                    return crop;
+                }
+            }
+            return crops[0];
+        }
 
         function renderGrid() {
             const gridContainer = document.getElementById("grid");
@@ -54,7 +76,7 @@
                 });
             });
         }
-        
+
         function updateCell(row, col) {
             const key = `${row}-${col}`;
             if (grid[row][col] === "🕳️") {
@@ -62,8 +84,15 @@
             } else if (grid[row][col] === "🌱" && !wateredPlants[key]) {
                 wateredPlants[key] = true;
                 startGrowthTimer(row, col);
-            } else if (grid[row][col] === "🌾") {
-                inventory.push("🌾");
+            } else if (grid[row][col] in inventory) {
+                inventory[grid[row][col]].count++;
+            } else if (grid[row][col] !== "🌱" && grid[row][col] !== "🕳️") {
+                let crop = grid[row][col];
+                if (!inventory[crop]) {
+                    inventory[crop] = { count: 1, value: crops.find(c => c.emoji === crop).value };
+                } else {
+                    inventory[crop].count++;
+                }
                 updateInventory();
                 grid[row][col] = "🕳️";
                 delete wateredPlants[key];
@@ -73,23 +102,31 @@
 
         function startGrowthTimer(row, col) {
             const key = `${row}-${col}`;
-            growthTimers[key] = 2; // 2 seconds growth time
-            
-            const interval = setInterval(() => {
-                growthTimers[key]--;
-                document.getElementById("growth-timer").innerText = growthTimers[key];
-                if (growthTimers[key] <= 0) {
-                    clearInterval(interval);
-                    grid[row][col] = "🌾";
-                    delete wateredPlants[key];
-                    renderGrid();
-                }
-            }, 1000);
+            setTimeout(() => {
+                let selectedCrop = selectRandomCrop();
+                grid[row][col] = selectedCrop.emoji;
+                delete wateredPlants[key];
+                renderGrid();
+            }, 2000);
         }
 
         function updateInventory() {
             const inventoryList = document.getElementById("inventory-list");
-            inventoryList.innerHTML = inventory.map(item => `<li>${item}</li>`).join("");
+            inventoryList.innerHTML = "";
+            Object.keys(inventory).forEach(crop => {
+                let listItem = document.createElement("li");
+                listItem.innerHTML = `${crop} (${inventory[crop].count}x) <button onclick='sellCrop("${crop}")'>Sell</button>`;
+                inventoryList.appendChild(listItem);
+            });
+        }
+
+        function sellCrop(crop) {
+            if (inventory[crop] && inventory[crop].count > 0) {
+                money += inventory[crop].value * inventory[crop].count;
+                document.getElementById("money").innerText = `💰 Money: ${money}`;
+                delete inventory[crop];
+                updateInventory();
+            }
         }
 
         renderGrid();
