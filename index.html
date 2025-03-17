@@ -15,16 +15,12 @@
         .inventory-row { display: flex; gap: 10px; margin-bottom: 5px; }
         .inventory-item { display: flex; align-items: center; gap: 5px; font-size: 18px; border: 1px solid #ccc; padding: 5px 10px; background: white; cursor: pointer; }
         #money { font-size: 24px; font-weight: bold; margin-top: 10px; }
-        #achievements { display: none; position: absolute; background: white; border: 1px solid #ccc; padding: 10px; width: 300px; top: 100px; left: 50%; transform: translateX(-50%); box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1); }
-        .achievement { margin-bottom: 5px; font-size: 16px; padding: 5px; border-bottom: 1px solid #ddd; }
     </style>
 </head>
 <body>
     <h1>🌾 Emoji Farm Game 🌱</h1>
     <p>Click an empty plot 🕳️ to plant 🌱, water 💧, and harvest crops!</p>
     <div id="money">💰 Money: 0</div>
-    <button onclick="toggleAchievements()">🏆 Achievements</button>
-    <div id="achievements"></div>
     <div id="game-container">
         <div id="inventory"></div>
         <div id="grid"></div>
@@ -35,25 +31,13 @@
         let grid = Array(size).fill().map(() => Array(size).fill("🕳️"));
         let wateredPlants = {};
         let money = loadMoney();
-        let achievements = {
-            "First Harvest": false,
-            "Earn $100": false,
-            "Earn $500": false,
-            "Earn $1000": false,
-            "Grow 10 Crops": false,
-            "Grow 50 Crops": false,
-            "Grow a Watermelon": false,
-            "Sell 50 Items": false,
-            "Become a Millionaire": false,
-            "Master Farmer": false
-        };
 
         const crops = [
-            { emoji: "🌾", value: 1, time: 2 }, { emoji: "🌽", value: 5, time: 4 }, { emoji: "🥕", value: 10, time: 6 }, { emoji: "🍅", value: 15, time: 8 },
-            { emoji: "🍆", value: 20, time: 10 }, { emoji: "🍎", value: 25, time: 12 }, { emoji: "🍇", value: 30, time: 15 }, { emoji: "🥦", value: 35, time: 18 },
-            { emoji: "🥒", value: 40, time: 20 }, { emoji: "🌶️", value: 45, time: 22 }, { emoji: "🍍", value: 50, time: 25 }, { emoji: "🍑", value: 55, time: 27 },
-            { emoji: "🥭", value: 60, time: 28 }, { emoji: "🍏", value: 65, time: 29 }, { emoji: "🍊", value: 70, time: 30 }, { emoji: "🥑", value: 75, time: 31 },
-            { emoji: "🍒", value: 80, time: 32 }, { emoji: "🥥", value: 90, time: 35 }, { emoji: "🍉", value: 100, time: 40 }
+            { emoji: "🌾", value: 1 }, { emoji: "🌽", value: 5 }, { emoji: "🥕", value: 10 }, { emoji: "🍅", value: 15 },
+            { emoji: "🍆", value: 20 }, { emoji: "🍎", value: 25 }, { emoji: "🍇", value: 30 }, { emoji: "🥦", value: 35 },
+            { emoji: "🥒", value: 40 }, { emoji: "🌶️", value: 45 }, { emoji: "🍍", value: 50 }, { emoji: "🍑", value: 55 },
+            { emoji: "🥭", value: 60 }, { emoji: "🍏", value: 65 }, { emoji: "🍊", value: 70 }, { emoji: "🥑", value: 75 },
+            { emoji: "🍒", value: 80 }, { emoji: "🥥", value: 90 }, { emoji: "🍉", value: 100 }
         ];
 
         let inventory = {};
@@ -82,6 +66,13 @@
                     cellElement.classList.add("cell");
                     cellElement.innerText = cell;
                     cellElement.onclick = () => updateCell(rowIndex, colIndex);
+                    
+                    if (wateredPlants[`${rowIndex}-${colIndex}`]) {
+                        let waterDrop = document.createElement("div");
+                        waterDrop.classList.add("water-drop");
+                        waterDrop.innerText = "💧";
+                        cellElement.appendChild(waterDrop);
+                    }
                     gridContainer.appendChild(cellElement);
                 });
             });
@@ -106,31 +97,65 @@
 
         function startGrowthTimer(row, col) {
             const key = `${row}-${col}`;
-            let selectedCrop = selectRandomCrop();
             setTimeout(() => {
+                let selectedCrop = selectRandomCrop();
                 grid[row][col] = selectedCrop.emoji;
                 delete wateredPlants[key];
                 renderGrid();
-            }, selectedCrop.time * 1000);
+            }, 2000);
         }
 
-        function toggleAchievements() {
-            const achievementsDiv = document.getElementById("achievements");
-            achievementsDiv.innerHTML = Object.keys(achievements)
-                .map(ach => `<div class="achievement">${ach} - ${achievements[ach] ? "✅" : "❌"}</div>`)
-                .join("");
-            achievementsDiv.style.display = achievementsDiv.style.display === "none" ? "block" : "none";
+        function updateInventory() {
+            const inventoryContainer = document.getElementById("inventory");
+            inventoryContainer.innerHTML = "";
+            let rowDiv;
+            let count = 0;
+
+            Object.keys(inventory).forEach(crop => {
+                if (inventory[crop].count > 0) {
+                    if (count % 2 === 0) {
+                        rowDiv = document.createElement("div");
+                        rowDiv.classList.add("inventory-row");
+                        inventoryContainer.appendChild(rowDiv);
+                    }
+
+                    let cropDiv = document.createElement("div");
+                    cropDiv.classList.add("inventory-item");
+                    cropDiv.innerHTML = `💰 ${crop} (${inventory[crop].count}x)`;
+                    cropDiv.onclick = () => sellCrop(crop);
+                    rowDiv.appendChild(cropDiv);
+                    count++;
+                }
+            });
+        }
+
+        function sellCrop(crop) {
+            if (inventory[crop] && inventory[crop].count > 0) {
+                money += inventory[crop].value * inventory[crop].count;
+                saveMoney(money);
+                document.getElementById("money").innerText = `💰 Money: ${money}`;
+                inventory[crop].count = 0;
+                updateInventory();
+            }
+        }
+
+        function saveMoney(amount) {
+            document.cookie = `money=${amount}; path=/; max-age=31536000`;
         }
 
         function loadMoney() {
-            return parseInt(localStorage.getItem("money")) || 0;
-        }
-
-        function saveMoney() {
-            localStorage.setItem("money", money);
+            let cookies = document.cookie.split("; ");
+            for (let cookie of cookies) {
+                let [key, value] = cookie.split("=");
+                if (key === "money") {
+                    return parseInt(value) || 0;
+                }
+            }
+            return 0;
         }
 
         document.getElementById("money").innerText = `💰 Money: ${money}`;
+        updateInventory();
         renderGrid();
     </script>
 </body>
