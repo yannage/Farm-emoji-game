@@ -30,7 +30,7 @@
         const size = 4;
         let grid = Array(size).fill().map(() => Array(size).fill("🕳️"));
         let wateredPlants = {};
-        let money = 0;
+        let money = loadMoney();
 
         const crops = [
             { emoji: "🌾", value: 1 }, { emoji: "🌽", value: 5 }, { emoji: "🥕", value: 10 }, { emoji: "🍅", value: 15 },
@@ -132,12 +132,29 @@
         function sellCrop(crop) {
             if (inventory[crop] && inventory[crop].count > 0) {
                 money += inventory[crop].value * inventory[crop].count;
+                saveMoney(money);
                 document.getElementById("money").innerText = `💰 Money: ${money}`;
                 inventory[crop].count = 0;
                 updateInventory();
             }
         }
 
+        function saveMoney(amount) {
+            document.cookie = `money=${amount}; path=/; max-age=31536000`;
+        }
+
+        function loadMoney() {
+            let cookies = document.cookie.split("; ");
+            for (let cookie of cookies) {
+                let [key, value] = cookie.split("=");
+                if (key === "money") {
+                    return parseInt(value) || 0;
+                }
+            }
+            return 0;
+        }
+
+        document.getElementById("money").innerText = `💰 Money: ${money}`;
         updateInventory();
         renderGrid();
     </script>
